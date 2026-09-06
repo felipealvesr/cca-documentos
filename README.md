@@ -94,13 +94,13 @@ e pelo SHA-512 publicado no `latest.yml`; depois o instalador NSIS é executado 
 o CCA reinicia. Builds de desenvolvimento não fazem essa verificação.
 
 Para publicar uma versão, altere o `version` do `package.json`, gere a release
-e envie uma tag correspondente (por exemplo, `v0.2.3`). O workflow
+e envie uma tag correspondente (por exemplo, `v0.2.4`). O workflow
 `.github/workflows/release.yml` executa o build em Windows e publica a Release
 automaticamente usando `GITHUB_TOKEN`:
 
 ```powershell
-git tag v0.2.3
-git push origin v0.2.3
+git tag v0.2.4
+git push origin v0.2.4
 ```
 
 O workflow publica `CCA-Setup.exe`, `latest.yml` e o `.blockmap`. A release deve

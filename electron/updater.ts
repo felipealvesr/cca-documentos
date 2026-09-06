@@ -259,12 +259,35 @@ export class UpdateManager {
       message: "Instalando a atualização…",
     });
     const installer = this.downloadedPath;
-    const child = spawn(installer, ["/S", `/D=${path.dirname(process.execPath)}`], {
+    // These flags are understood by the electron-builder NSIS template. In
+    // particular, --updated makes an assisted installer skip its normal
+    // first-install pages and preserve the detected install scope. Without
+    // it, NSIS can enter the uninstall/reinstall path and leave the app
+    // removed when the old installation is closed during the update.
+    const args = [
+      "--updated",
+      "/S",
+      "--force-run",
+      `/D=${path.dirname(process.execPath)}`,
+    ];
+    const child = spawn(installer, args, {
       detached: true,
       stdio: "ignore",
       windowsHide: true,
     });
-    child.unref();
-    setTimeout(() => app.quit(), 300);
+    child.once("spawn", () => {
+      child.unref();
+      // Give NSIS a moment to initialize before the current process releases
+      // the installation directory. The installer itself is detached and
+      // will continue after Electron exits.
+      setTimeout(() => app.quit(), 1000);
+    });
+    child.once("error", (error) => {
+      this.emit({
+        phase: "error",
+        version: this.manifest?.version,
+        message: error.message || "Não foi possível iniciar o instalador.",
+      });
+    });
   }
 }
