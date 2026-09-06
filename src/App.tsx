@@ -943,7 +943,7 @@ export default function App() {
           <i />
           Da leitura à conferência.
         </span>
-        <span>MVP · v0.2.0</span>
+        <span>MVP · v0.2.1</span>
       </footer>
       {dragging && !locked && (
         <div className="drop-overlay">
