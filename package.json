@@ -1,0 +1,73 @@
+{
+  "name": "cca-documentos",
+  "version": "0.2.0",
+  "private": true,
+  "description": "CCA — Captura de documentos e cadastro assistido",
+  "author": "CCA",
+  "type": "module",
+  "main": "dist-electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "test:smoke": "node scripts/smoke.mjs",
+    "assets": "node scripts/icons.mjs",
+    "dist": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win nsis --x64",
+    "pack": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win --dir"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.80",
+    "lucide-react": "^0.577.0",
+    "pdfjs-dist": "^5.4.149",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "electron": "44.2.0",
+    "electron-builder": "26.15.3",
+    "esbuild": "^0.27.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.58.0",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "build": {
+    "appId": "br.com.cca.documentos",
+    "productName": "CCA Documentos",
+    "copyright": "CCA Documentos",
+    "directories": { "output": "release", "buildResources": "assets" },
+    "files": ["dist/**/*", "dist-electron/**/*", "package.json"],
+    "asarUnpack": ["node_modules/@napi-rs/**/*", "node_modules/pdfjs-dist/**/*"],
+    "extraResources": [
+      { "from": "prototype/CCA_v1.exe", "to": "automation/CCA_v1.exe" },
+      { "from": "assets/icon.ico", "to": "icon.ico" },
+      { "from": "assets/icon.png", "to": "icon.png" },
+      { "from": "resources/ocr", "to": "ocr", "filter": ["**/*", "!**/__pycache__/**", "!**/*.pyc", "!Lib/site-packages/rapidocr/models/**", "!Lib/site-packages/**/tests/**"] }
+    ],
+    "win": { "target": ["nsis"], "icon": "assets/icon.ico", "executableName": "CCA", "requestedExecutionLevel": "asInvoker", "signAndEditExecutable": false },
+    "nsis": {
+      "artifactName": "CCA-Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CCA Documentos",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": false,
+      "language": "1046"
+    }
+  }
+}

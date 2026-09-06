@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-electron/
+release/
+resources/ocr/
+.pnpm-store/
+.cache/
+test-results/
+prototype/cliente_teste.json
+*.log

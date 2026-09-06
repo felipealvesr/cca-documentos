@@ -1,0 +1,38 @@
+CCA v1 — protótipo de navegação assistida
+
+OBJETIVO
+Automatizar somente:
+1) tela CPF -> preencher CPF e Consultar;
+2) tela Identificação Positiva -> preencher nome do pai + número da CNH e Consultar;
+3) detectar a tela cadastral final e PARAR.
+
+O programa NÃO salva, NÃO avança e NÃO conclui a tela cadastral final.
+
+COMO TESTAR
+1. Coloque CCA_v1.exe e cliente_teste.json na mesma pasta.
+2. Dê dois cliques em CCA_v1.exe.
+3. O programa abrirá uma janela dedicada do Google Chrome.
+4. Faça login no CAIXA Aqui normalmente, se necessário.
+5. Deixe a tela inicial "CPF do Cliente" aberta.
+6. Volte ao CCA e pressione ENTER.
+7. Acompanhe visualmente o preenchimento.
+8. Ao chegar à tela cadastral final, o programa encerra a automação.
+
+OBSERVAÇÕES
+- O Chrome precisa estar instalado.
+- A sessão usada pelo protótipo fica em um perfil separado:
+  %LOCALAPPDATA%\CCA_v1\ChromeProfile
+- O protótipo não armazena senha do CAIXA Aqui.
+- Os dados de cliente deste pacote são somente os necessários para o teste atual.
+- Se a CAIXA alterar IDs/HTML das telas, o protótipo pode precisar de ajuste.
+- Não use em produção antes de validar o comportamento em ambiente autorizado.
+
+ARQUIVO cliente_teste.json
+Você pode editar os três campos antes do teste:
+cpf
+nome_pai_validacao
+numero_cnh
+
+IMPORTANTE
+Nesta primeira versão, a leitura automática da CNH/PDF ainda NÃO está dentro do executável.
+O objetivo deste build é testar primeiro a automação do navegador, separadamente da extração documental.

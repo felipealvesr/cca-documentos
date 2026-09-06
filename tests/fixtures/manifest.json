@@ -1,0 +1,146 @@
+[
+  {
+    "file": "cnh-nova.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "cnh-antiga.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "cin.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "rg.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "rg": "12.345.678-9"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "certidao.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "desconhecido.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "scan-medio.jpg",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "foto-celular.jpg",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "rotacionado.png",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "iluminacao-ruim.jpg",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "synthetic": true
+  },
+  {
+    "file": "pdf-digital.pdf",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "method": "text",
+    "synthetic": true
+  },
+  {
+    "file": "pdf-misto.pdf",
+    "expected": {
+      "fullName": "MARIA DA SILVA",
+      "cpf": "123.456.789-09",
+      "birthDate": "02/05/1990",
+      "fatherName": "JOAO DA SILVA",
+      "motherName": "ANA MARIA DA SILVA",
+      "cnh": "01234567890"
+    },
+    "method": "mixed",
+    "synthetic": true
+  }
+]
