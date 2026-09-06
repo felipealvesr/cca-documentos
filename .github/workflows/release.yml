@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag que será gerada ou reparada (ex.: v0.2.1)"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,10 +21,13 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || github.ref_name }}
 
       - name: Enable pnpm
         uses: pnpm/action-setup@v4
@@ -52,8 +61,8 @@ jobs:
         shell: pwsh
         run: |
           $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-          if ("v$version" -ne "${{ github.ref_name }}") {
-            throw "A tag ${{ github.ref_name }} precisa corresponder à versão v$version do package.json."
+          if ("v$version" -ne "${{ env.RELEASE_TAG }}") {
+            throw "A tag ${{ env.RELEASE_TAG }} precisa corresponder à versão v$version do package.json."
           }
 
       - name: Prepare offline OCR runtime
@@ -64,5 +73,27 @@ jobs:
           pnpm test
           pnpm run build
 
-      - name: Build and publish GitHub Release
-        run: pnpm exec electron-builder --win nsis --x64 --publish always
+      - name: Build installer
+        run: pnpm exec electron-builder --win nsis --x64 --publish never
+
+      - name: Generate update manifest
+        run: node scripts/write-update-manifest.mjs
+
+      - name: Create or update GitHub Release
+        shell: pwsh
+        run: |
+          $tag = "${{ env.RELEASE_TAG }}"
+          $repo = "${{ github.repository }}"
+          if (-not (Test-Path release/CCA-Setup.exe)) {
+            throw "O instalador release/CCA-Setup.exe não foi gerado."
+          }
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $repo --title "CCA Documentos $tag" --generate-notes
+            if ($LASTEXITCODE -ne 0) { throw "Não foi possível criar a Release $tag." }
+          }
+          $assets = @("release/CCA-Setup.exe", "release/latest.yml")
+          if (Test-Path release/CCA-Setup.exe.blockmap) {
+            $assets += "release/CCA-Setup.exe.blockmap"
+          }
+          gh release upload $tag --repo $repo --clobber $assets

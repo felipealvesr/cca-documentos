@@ -103,10 +103,10 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-O electron-builder publica `CCA-Setup.exe`, `latest.yml` e o `.blockmap`. A
-release deve permanecer publicada para que os clientes encontrem a atualização.
-Para executar o mesmo processo manualmente, o script `pnpm run release` também
-está disponível e exige `GH_TOKEN` com permissão de publicação.
+O workflow publica `CCA-Setup.exe`, `latest.yml` e o `.blockmap`. A release deve
+permanecer publicada para que os clientes encontrem a atualização. Se uma
+release já existir sem os arquivos, execute o workflow manualmente em **Actions
+→ Release Windows → Run workflow**, informando a tag para repará-la.
 
 Os testes usam somente documentos sintéticos, identificados como amostras sem validade. Não existe documento pessoal real/sanitizado no ZIP original: apenas executável, instruções e JSON de exemplo. Os testes não acessam o CAIXA Aqui nem enviam dados fictícios a ele. Os resultados e limitações estão em `docs/VALIDACAO.md`.
 
