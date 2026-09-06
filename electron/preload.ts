@@ -21,5 +21,14 @@ const api: DesktopApi = {
     ipcRenderer.on("automation:status", handler);
     return () => ipcRenderer.removeListener("automation:status", handler);
   },
+  checkForUpdate: () => ipcRenderer.invoke("update:check"),
+  downloadUpdate: () => ipcRenderer.invoke("update:download"),
+  installUpdate: () => ipcRenderer.invoke("update:install"),
+  onUpdate: (callback) => {
+    const handler = (_event: unknown, data: Parameters<typeof callback>[0]) =>
+      callback(data);
+    ipcRenderer.on("update:status", handler);
+    return () => ipcRenderer.removeListener("update:status", handler);
+  },
 };
 contextBridge.exposeInMainWorld("cca", api);

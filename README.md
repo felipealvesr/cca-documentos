@@ -54,6 +54,7 @@ A extração utiliza rótulos compartilhados, linhas vizinhas, proximidade horiz
 - `src/shared/quality.ts`: critérios determinísticos para fallback.
 - `src/shared/consolidate.ts`: consolidação, fontes e conflitos.
 - `electron/automation.ts`: integração com o executável original.
+- `electron/updater.ts`: verificação, download e instalação das releases do GitHub.
 - `src/App.tsx`: importação, preview, edição e confirmação.
 
 ## Desenvolvimento e build
@@ -83,6 +84,30 @@ $env:CCA_TEST_EXE = 'CAMINHO\CCA.exe'
 node scripts/smoke.mjs
 ```
 
+## Atualizações por release
+
+O aplicativo instalado verifica a release mais recente de
+`github.com/felipealvesr/cca-documentos` alguns segundos depois de abrir. Ao
+encontrar uma versão nova, o funcionário escolhe quando baixar e instalar. O
+download é salvo apenas na pasta de dados do aplicativo, conferido pelo tamanho
+e pelo SHA-512 publicado no `latest.yml`; depois o instalador NSIS é executado e
+o CCA reinicia. Builds de desenvolvimento não fazem essa verificação.
+
+Para publicar uma versão, altere o `version` do `package.json`, gere a release
+e envie uma tag correspondente (por exemplo, `v0.2.1`). O workflow
+`.github/workflows/release.yml` executa o build em Windows e publica a Release
+automaticamente usando `GITHUB_TOKEN`:
+
+```powershell
+git tag v0.2.1
+git push origin v0.2.1
+```
+
+O electron-builder publica `CCA-Setup.exe`, `latest.yml` e o `.blockmap`. A
+release deve permanecer publicada para que os clientes encontrem a atualização.
+Para executar o mesmo processo manualmente, o script `pnpm run release` também
+está disponível e exige `GH_TOKEN` com permissão de publicação.
+
 Os testes usam somente documentos sintéticos, identificados como amostras sem validade. Não existe documento pessoal real/sanitizado no ZIP original: apenas executável, instruções e JSON de exemplo. Os testes não acessam o CAIXA Aqui nem enviam dados fictícios a ele. Os resultados e limitações estão em `docs/VALIDACAO.md`.
 
 ## Privacidade e segurança
@@ -97,7 +122,7 @@ Os testes usam somente documentos sintéticos, identificados como amostras sem v
 
 Não foi fornecido asset oficial de marca. O ícone próprio usa azul, laranja, documento e cantos de captura. Fonte vetorial: `assets/icon.svg`. `assets/icon.png` possui 512 px e `assets/icon.ico` contém 16, 24, 32, 48, 64, 128 e 256 px. O electron-builder configura aplicação, instalador NSIS, desinstalador e atalhos com esse ícone.
 
-O build não possui certificado de assinatura de código próprio; para distribuição corporativa, a organização poderá assinar o pacote. Não foi implementado atualizador automático, cloud OCR ou login próprio.
+O build não possui certificado de assinatura de código próprio; para distribuição corporativa, a organização poderá assinar o pacote. O atualizador usa somente HTTPS e as releases oficiais do repositório configurado no `electron/updater.ts`; não há cloud OCR ou login próprio.
 
 ## Referências dos componentes
 

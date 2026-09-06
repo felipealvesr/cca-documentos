@@ -6,6 +6,7 @@ import { pathToFileURL } from "node:url";
 import { LocalOcrProvider, MAX_BYTES, inputKind } from "./ocr";
 import { extractDocument } from "../src/shared/extract";
 import { AutomationBridge } from "./automation";
+import { UpdateManager } from "./updater";
 import type { DocumentInput } from "../src/shared/types";
 
 app.setName("CCA Documentos");
@@ -86,6 +87,9 @@ app.whenReady().then(async () => {
         url.host === "127.0.0.1:5173");
     callback({ cancel: !allowed });
   });
+  const updater = new UpdateManager((status) => {
+    if (!window?.isDestroyed()) window?.webContents.send("update:status", status);
+  });
   const handle = (channel: string, action: (...args: any[]) => unknown) =>
     ipcMain.handle(channel, (event, ...args) => {
       if (
@@ -154,6 +158,9 @@ app.whenReady().then(async () => {
   handle("automation:start", (input) => automation.start(input));
   handle("automation:continue", () => automation.continue());
   handle("automation:cancel", () => automation.cancel());
+  handle("update:check", () => updater.check());
+  handle("update:download", () => updater.download());
+  handle("update:install", () => updater.install());
   window.on("close", (event) => {
     if (closing) return;
     event.preventDefault();
@@ -167,5 +174,6 @@ app.whenReady().then(async () => {
   });
   await window.loadURL(appUrl);
   window.show();
+  if (app.isPackaged) setTimeout(() => void updater.check(), 4000);
 });
 app.on("window-all-closed", () => app.quit());

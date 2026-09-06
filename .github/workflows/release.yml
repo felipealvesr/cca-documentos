@@ -1,0 +1,68 @@
+name: Release Windows
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish CCA-Setup.exe
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+
+      - name: Cache OCR runtime and models
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/python-embed.zip
+            resources/ocr
+          key: ocr-${{ runner.os }}-${{ hashFiles('ocr-worker/models.json', 'ocr-worker/requirements.txt') }}
+
+      - name: Install JavaScript dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "A tag ${{ github.ref_name }} precisa corresponder à versão v$version do package.json."
+          }
+
+      - name: Prepare offline OCR runtime
+        run: python scripts/prepare-ocr.py
+
+      - name: Validate
+        run: |
+          pnpm test
+          pnpm run build
+
+      - name: Build and publish GitHub Release
+        run: pnpm exec electron-builder --win nsis --x64 --publish always

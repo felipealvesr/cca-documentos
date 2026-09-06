@@ -4,6 +4,10 @@
   "private": true,
   "description": "CCA — Captura de documentos e cadastro assistido",
   "author": "CCA",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felipealvesr/cca-documentos.git"
+  },
   "type": "module",
   "main": "dist-electron/main.cjs",
   "scripts": {
@@ -13,7 +17,8 @@
     "test:smoke": "node scripts/smoke.mjs",
     "assets": "node scripts/icons.mjs",
     "dist": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win nsis --x64",
-    "pack": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win --dir"
+    "pack": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win --dir",
+    "release": "node scripts/build.mjs && node node_modules/electron-builder/cli.js --win nsis --x64 --publish always"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.80",
@@ -43,16 +48,53 @@
     "appId": "br.com.cca.documentos",
     "productName": "CCA Documentos",
     "copyright": "CCA Documentos",
-    "directories": { "output": "release", "buildResources": "assets" },
-    "files": ["dist/**/*", "dist-electron/**/*", "package.json"],
-    "asarUnpack": ["node_modules/@napi-rs/**/*", "node_modules/pdfjs-dist/**/*"],
-    "extraResources": [
-      { "from": "prototype/CCA_v1.exe", "to": "automation/CCA_v1.exe" },
-      { "from": "assets/icon.ico", "to": "icon.ico" },
-      { "from": "assets/icon.png", "to": "icon.png" },
-      { "from": "resources/ocr", "to": "ocr", "filter": ["**/*", "!**/__pycache__/**", "!**/*.pyc", "!Lib/site-packages/rapidocr/models/**", "!Lib/site-packages/**/tests/**"] }
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
     ],
-    "win": { "target": ["nsis"], "icon": "assets/icon.ico", "executableName": "CCA", "requestedExecutionLevel": "asInvoker", "signAndEditExecutable": false },
+    "asarUnpack": [
+      "node_modules/@napi-rs/**/*",
+      "node_modules/pdfjs-dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "prototype/CCA_v1.exe",
+        "to": "automation/CCA_v1.exe"
+      },
+      {
+        "from": "assets/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "assets/icon.png",
+        "to": "icon.png"
+      },
+      {
+        "from": "resources/ocr",
+        "to": "ocr",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/*.pyc",
+          "!Lib/site-packages/rapidocr/models/**",
+          "!Lib/site-packages/**/tests/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico",
+      "executableName": "CCA",
+      "requestedExecutionLevel": "asInvoker",
+      "signAndEditExecutable": false
+    },
     "nsis": {
       "artifactName": "CCA-Setup.exe",
       "oneClick": false,
@@ -68,6 +110,14 @@
       "deleteAppDataOnUninstall": false,
       "runAfterFinish": false,
       "language": "1046"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "felipealvesr",
+        "repo": "cca-documentos",
+        "releaseType": "release"
+      }
+    ]
   }
 }

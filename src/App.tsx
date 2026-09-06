@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleHelp,
+  Download,
   FilePlus2,
   FileScan,
   FileText,
@@ -17,6 +18,7 @@ import {
   LockKeyhole,
   Plus,
   RotateCcw,
+  RefreshCw,
   ScanLine,
   ShieldCheck,
   Trash2,
@@ -28,6 +30,7 @@ import {
 } from "lucide-react";
 import type {
   AutomationStatus,
+  AppUpdateStatus,
   Candidate,
   DocumentInput,
   ProcessedDocument,
@@ -73,6 +76,10 @@ export default function App() {
     message: "",
   });
   const [automationOpen, setAutomationOpen] = useState(false);
+  const [update, setUpdate] = useState<AppUpdateStatus>({
+    phase: "idle",
+    message: "",
+  });
   const cancelled = useRef(false);
   const busyRef = useRef(false);
   const fields = consolidate(documents, edits).map((field) =>
@@ -114,9 +121,11 @@ export default function App() {
   useEffect(() => {
     const off = api?.onProgress(setProgress);
     const offAutomation = api?.onAutomation(setAutomation);
+    const offUpdate = api?.onUpdate(setUpdate);
     return () => {
       off?.();
       offAutomation?.();
+      offUpdate?.();
     };
   }, []);
   useEffect(() => {
@@ -262,6 +271,13 @@ export default function App() {
       setAutomation({ phase: "error", message: errorMessage(error) });
     }
   }
+  async function installUpdate() {
+    try {
+      await api?.installUpdate();
+    } catch (error) {
+      setErrors([errorMessage(error)]);
+    }
+  }
   function showSource(source?: Candidate) {
     if (!source) return;
     setSelectedId(source.documentId);
@@ -286,7 +302,11 @@ export default function App() {
       >
         <div className="field-label">
           <label htmlFor={`field-${field.key}`}>{field.label}</label>
-          {priority && <span className="required-tag">{field.key === "fullName" ? "Obrigatório" : "CPF ou CNH"}</span>}
+          {priority && (
+            <span className="required-tag">
+              {field.key === "fullName" ? "Obrigatório" : "CPF ou CNH"}
+            </span>
+          )}
         </div>
         <div className="input-wrap">
           <input
@@ -412,6 +432,38 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
+          {update.phase === "available" && (
+            <button
+              className="update-button"
+              title={update.message}
+              onClick={() => void api?.downloadUpdate()}
+            >
+              <Download size={14} />
+              Nova versão {update.version}
+            </button>
+          )}
+          {update.phase === "downloading" && (
+            <span className="update-progress" title={update.message}>
+              <RefreshCw size={14} className="spin" />
+              Atualizando {update.progress ?? 0}%
+            </span>
+          )}
+          {update.phase === "ready" && (
+            <button
+              className="update-button ready"
+              title={update.message}
+              onClick={() => void installUpdate()}
+            >
+              <Download size={14} />
+              Instalar atualização
+            </button>
+          )}
+          {update.phase === "installing" && (
+            <span className="update-progress" title={update.message}>
+              <RefreshCw size={14} className="spin" />
+              Instalando…
+            </span>
+          )}
           <span className="local-badge">
             <span />
             Processamento local
@@ -744,7 +796,10 @@ export default function App() {
                         {conflicts === 1
                           ? "campo apresenta divergência"
                           : "campos apresentam divergências"}
-                        . {blockingConflicts ? "Resolva os dados principais para continuar." : "Confira os campos opcionais ou escolha um valor antes de enviá-los."}
+                        .{" "}
+                        {blockingConflicts
+                          ? "Resolva os dados principais para continuar."
+                          : "Confira os campos opcionais ou escolha um valor antes de enviá-los."}
                       </span>
                     </div>
                   )}

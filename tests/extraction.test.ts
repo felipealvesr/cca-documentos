@@ -11,14 +11,12 @@ const fromLines = (text: string): OcrResult => {
     height: 1400,
     preview: "",
     method: "ocr",
-    elements: text
-      .split("\n")
-      .map((line, index) => ({
-        text: line,
-        page: 1,
-        confidence: 0.97,
-        box: { x: 50, y: index * 30, width: 500, height: 22 },
-      })),
+    elements: text.split("\n").map((line, index) => ({
+      text: line,
+      page: 1,
+      confidence: 0.97,
+      box: { x: 50, y: index * 30, width: 500, height: 22 },
+    })),
   };
   return { text, pages: [page] };
 };

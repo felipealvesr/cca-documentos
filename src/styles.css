@@ -122,6 +122,41 @@ a {
   border-radius: 50%;
   background: #319277;
 }
+.update-button,
+.update-progress {
+  min-height: 30px;
+  border-radius: 17px;
+  padding: 6px 11px;
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.update-button {
+  border: 1px solid #f1d7aa;
+  background: #fff8eb;
+  color: #9a681f;
+}
+.update-button:hover {
+  background: #fff0d1;
+  border-color: #e9c27c;
+}
+.update-button.ready {
+  border-color: #c6e6d9;
+  background: #eef9f4;
+  color: #26785e;
+}
+.update-button.ready:hover {
+  background: #e0f4eb;
+  border-color: #9fd4bf;
+}
+.update-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5f7f93;
+  background: #f2f7fa;
+  border: 1px solid #dfeaf0;
+}
 .icon-button {
   height: 30px;
   min-width: 30px;

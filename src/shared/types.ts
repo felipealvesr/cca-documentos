@@ -131,6 +131,20 @@ export interface AutomationStatus {
   phase: AutomationPhase;
   message: string;
 }
+export type UpdatePhase =
+  | "idle"
+  | "checking"
+  | "available"
+  | "downloading"
+  | "ready"
+  | "installing"
+  | "error";
+export interface AppUpdateStatus {
+  phase: UpdatePhase;
+  version?: string;
+  progress?: number;
+  message: string;
+}
 export interface AutomationInput {
   fullName: string;
   cpf?: string;
@@ -148,6 +162,10 @@ export interface DesktopApi {
   continueAutomation(): Promise<void>;
   cancelAutomation(): Promise<void>;
   onAutomation(callback: (status: AutomationStatus) => void): () => void;
+  checkForUpdate(): Promise<AppUpdateStatus>;
+  downloadUpdate(): Promise<AppUpdateStatus>;
+  installUpdate(): Promise<void>;
+  onUpdate(callback: (status: AppUpdateStatus) => void): () => void;
 }
 declare global {
   interface Window {
