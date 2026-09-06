@@ -271,6 +271,13 @@ export default function App() {
       setAutomation({ phase: "error", message: errorMessage(error) });
     }
   }
+  async function downloadUpdate() {
+    try {
+      await api?.downloadUpdate();
+    } catch (error) {
+      setErrors([errorMessage(error)]);
+    }
+  }
   async function installUpdate() {
     try {
       await api?.installUpdate();
@@ -432,38 +439,6 @@ export default function App() {
           </div>
         </div>
         <div className="header-actions">
-          {update.phase === "available" && (
-            <button
-              className="update-button"
-              title={update.message}
-              onClick={() => void api?.downloadUpdate()}
-            >
-              <Download size={14} />
-              Nova versão {update.version}
-            </button>
-          )}
-          {update.phase === "downloading" && (
-            <span className="update-progress" title={update.message}>
-              <RefreshCw size={14} className="spin" />
-              Atualizando {update.progress ?? 0}%
-            </span>
-          )}
-          {update.phase === "ready" && (
-            <button
-              className="update-button ready"
-              title={update.message}
-              onClick={() => void installUpdate()}
-            >
-              <Download size={14} />
-              Instalar atualização
-            </button>
-          )}
-          {update.phase === "installing" && (
-            <span className="update-progress" title={update.message}>
-              <RefreshCw size={14} className="spin" />
-              Instalando…
-            </span>
-          )}
           <span className="local-badge">
             <span />
             Processamento local
@@ -478,6 +453,50 @@ export default function App() {
           </button>
         </div>
       </header>
+      {update.phase !== "idle" && update.phase !== "checking" && update.phase !== "error" && (
+        <div className={`update-toast ${update.phase}`} role="status">
+          <div className="update-toast-icon">
+            {update.phase === "downloading" || update.phase === "installing" ? (
+              <RefreshCw size={18} className="spin" />
+            ) : (
+              <Download size={18} />
+            )}
+          </div>
+          <div className="update-toast-copy">
+            <strong>
+              {update.phase === "ready"
+                ? "Atualização pronta"
+                : update.phase === "installing"
+                  ? "Instalando atualização"
+                  : "Nova versão disponível"}
+            </strong>
+            <p>
+              {update.phase === "available"
+                ? `A versão ${update.version} do CCA está disponível.`
+                : update.message}
+            </p>
+          </div>
+          {update.phase === "available" && (
+            <button
+              className="button update-toast-button"
+              onClick={() => void downloadUpdate()}
+            >
+              Baixar
+            </button>
+          )}
+          {update.phase === "downloading" && (
+            <span className="update-toast-progress">{update.progress ?? 0}%</span>
+          )}
+          {update.phase === "ready" && (
+            <button
+              className="button update-toast-button ready"
+              onClick={() => void installUpdate()}
+            >
+              Instalar
+            </button>
+          )}
+        </div>
+      )}
       <nav className="steps" aria-label="Etapas do cadastro">
         {[
           { label: "Selecionar documento", n: 1 },
@@ -517,7 +536,7 @@ export default function App() {
         {!hasOperation && !busy ? (
           <section className="welcome">
             <span className="eyebrow">
-              MENOS DIGITAÇÃO. MAIS ATENÇÃO AO CLIENTE. · v0.2.2
+              MENOS DIGITAÇÃO. MAIS ATENÇÃO AO CLIENTE. · v0.2.3
             </span>
             <h1>
               O cadastro começa
@@ -943,7 +962,7 @@ export default function App() {
           <i />
           Da leitura à conferência.
         </span>
-        <span>MVP · v0.2.2</span>
+        <span>MVP · v0.2.3</span>
       </footer>
       {dragging && !locked && (
         <div className="drop-overlay">

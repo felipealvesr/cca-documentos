@@ -1,6 +1,6 @@
 {
   "name": "cca-documentos",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "CCA — Captura de documentos e cadastro assistido",
   "author": "CCA",
@@ -93,7 +93,7 @@
       "icon": "assets/icon.ico",
       "executableName": "CCA",
       "requestedExecutionLevel": "asInvoker",
-      "signAndEditExecutable": false
+      "signExecutable": false
     },
     "nsis": {
       "artifactName": "CCA-Setup.exe",

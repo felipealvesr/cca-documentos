@@ -122,40 +122,110 @@ a {
   border-radius: 50%;
   background: #319277;
 }
-.update-button,
-.update-progress {
-  min-height: 30px;
-  border-radius: 17px;
-  padding: 6px 11px;
+.update-toast {
+  position: fixed;
+  top: 103px;
+  right: 34px;
+  z-index: 12;
+  width: min(430px, calc(100vw - 68px));
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 13px;
+  background: #fffaf0;
+  border: 1px solid #f0d7aa;
+  border-left: 4px solid #ef982d;
+  border-radius: 8px;
+  box-shadow: 0 9px 28px #24435a24;
+  color: #6f5a36;
+  animation: update-toast-in 0.22s ease-out;
+}
+.update-toast.downloading,
+.update-toast.installing {
+  background: #f3f8fb;
+  border-color: #d8e8f1;
+  border-left-color: #2581ad;
+  color: #4f7186;
+}
+.update-toast.ready {
+  background: #f1faf6;
+  border-color: #cbe8da;
+  border-left-color: #31866b;
+  color: #3c6f5c;
+}
+.update-toast-icon {
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #d58627;
+}
+.update-toast.downloading .update-toast-icon,
+.update-toast.installing .update-toast-icon {
+  color: #2581ad;
+}
+.update-toast.ready .update-toast-icon {
+  color: #31866b;
+}
+.update-toast-copy {
+  min-width: 0;
+  flex: 1;
+}
+.update-toast-copy strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+}
+.update-toast-copy p {
+  margin: 2px 0 0;
+  font-size: 10px;
+  line-height: 1.45;
+  color: #8a7860;
+}
+.update-toast.downloading .update-toast-copy p,
+.update-toast.installing .update-toast-copy p {
+  color: #7895a5;
+}
+.update-toast.ready .update-toast-copy p {
+  color: #6b9584;
+}
+.update-toast-button {
+  min-height: 31px;
+  padding: 7px 11px;
+  border: 1px solid #e3bd7b;
+  background: #ef982d;
+  color: #fff;
   font-size: 11px;
-  font-weight: 650;
   white-space: nowrap;
 }
-.update-button {
-  border: 1px solid #f1d7aa;
-  background: #fff8eb;
-  color: #9a681f;
+.update-toast-button:hover {
+  background: #d9831d;
 }
-.update-button:hover {
-  background: #fff0d1;
-  border-color: #e9c27c;
+.update-toast-button.ready {
+  border-color: #31866b;
+  background: #31866b;
 }
-.update-button.ready {
-  border-color: #c6e6d9;
-  background: #eef9f4;
-  color: #26785e;
+.update-toast-button.ready:hover {
+  background: #256b54;
 }
-.update-button.ready:hover {
-  background: #e0f4eb;
-  border-color: #9fd4bf;
+.update-toast-progress {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2581ad;
+  white-space: nowrap;
 }
-.update-progress {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #5f7f93;
-  background: #f2f7fa;
-  border: 1px solid #dfeaf0;
+@keyframes update-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .icon-button {
   height: 30px;
