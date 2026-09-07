@@ -597,7 +597,7 @@ export default function App() {
         {!hasOperation && !busy ? (
           <section className="welcome">
             <span className="eyebrow">
-              MENOS DIGITAÇÃO. MAIS ATENÇÃO AO CLIENTE. · v0.2.4
+              MENOS DIGITAÇÃO. MAIS ATENÇÃO AO CLIENTE. · v0.2.5
             </span>
             <h1>
               O cadastro começa
@@ -1059,7 +1059,7 @@ export default function App() {
           <i />
           Da leitura à conferência.
         </span>
-        <span>MVP · v0.2.4</span>
+        <span>MVP · v0.2.5</span>
       </footer>
       {dragging && !locked && (
         <div className="drop-overlay">
