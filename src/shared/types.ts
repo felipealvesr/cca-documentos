@@ -130,6 +130,9 @@ export type AutomationPhase =
 export interface AutomationStatus {
   phase: AutomationPhase;
   message: string;
+  // Errors only. "browser" means the same run can be tried again as it is;
+  // "data" means the employee has to complete a field before it makes sense.
+  recovery?: "browser" | "data";
 }
 export type UpdatePhase =
   | "idle"
@@ -151,6 +154,11 @@ export interface AutomationInput {
   nome_pai_validacao?: string;
   numero_cnh?: string;
   confirmed: boolean;
+  // Everything the employee reviewed, labels included. The engine in place reads
+  // only the three keys above, but the CAIXA Aqui screen has more fields than we
+  // know about, so whatever the documents gave rides along instead of being
+  // thrown away between the review and the filling.
+  reviewed?: { key: string; label: string; value: string }[];
 }
 export interface DesktopApi {
   pickDocuments(): Promise<DocumentInput[]>;
@@ -160,6 +168,7 @@ export interface DesktopApi {
   onProgress(callback: (progress: Progress) => void): () => void;
   startAutomation(input: AutomationInput): Promise<void>;
   continueAutomation(): Promise<void>;
+  retryAutomation(): Promise<void>;
   cancelAutomation(): Promise<void>;
   onAutomation(callback: (status: AutomationStatus) => void): () => void;
   checkForUpdate(): Promise<AppUpdateStatus>;

@@ -28,7 +28,60 @@ export function validateAutomation(input: AutomationInput) {
   if (!(input.cpf ?? "").trim() && !(input.numero_cnh ?? "").trim())
     throw new Error("Preencha um CPF ou número da CNH válido.");
 }
+// Messages below are the ones CCA_v1.exe actually prints; keep them in sync with
+// the executable before changing anything here. Nothing it says reaches the
+// employee as it is: the executable is an implementation detail, so every line
+// becomes a sentence about what the person in front of the screen should do.
+export const CLOSING_PROMPT = /Pressione ENTER para fechar/i;
+// The engine reads the three legacy keys and ignores what it does not know —
+// confirmed against CCA_v1.exe, including nested objects. So the file carries the
+// whole reviewed record: the next engine fills more of the screen without another
+// round trip, and this one behaves exactly as before.
+export function enginePayload(input: AutomationInput) {
+  return {
+    cpf: digits(input.cpf ?? ""),
+    nome_pai_validacao: (input.nome_pai_validacao ?? "").trim(),
+    numero_cnh: digits(input.numero_cnh ?? ""),
+    nome_completo: input.fullName.trim(),
+    campos: (input.reviewed ?? [])
+      .filter((field) => field.value.trim())
+      .map((field) => ({
+        chave: field.key,
+        rotulo: field.label,
+        valor: field.value.trim(),
+      })),
+  };
+}
 export function protocolStatus(text: string): AutomationStatus | undefined {
+  if (/CPF deve conter/i.test(text))
+    return {
+      phase: "error",
+      recovery: "data",
+      message:
+        "A identificação positiva exige o CPF completo do cliente. Volte à conferência e informe o CPF.",
+    };
+  if (
+    /ERRO ao carregar cliente_teste\.json|obrigat[oó]rios no prot[oó]tipo/i.test(
+      text,
+    )
+  )
+    return {
+      phase: "error",
+      recovery: "data",
+      message:
+        "A identificação positiva exige o nome do pai e o número da CNH junto com o CPF. Volte à conferência e complete esses campos.",
+    };
+  if (
+    /Google Chrome n[aã]o encontrado|ERRO ao abrir Chrome|ERRO ao conectar ao Chrome|ERRO de comunica[cç][aã]o com o navegador|aba do CAIXA Aqui/i.test(
+      text,
+    )
+  )
+    return {
+      phase: "error",
+      recovery: "browser",
+      message:
+        "Não foi possível falar com o Google Chrome. Confira se ele está instalado e se a janela do CAIXA Aqui continua aberta.",
+    };
   if (
     /ERRO|N[aã]o consegui|N[aã]o encontrei|n[aã]o apareceu|obrigat[oó]rios/i.test(
       text,
@@ -36,18 +89,19 @@ export function protocolStatus(text: string): AutomationStatus | undefined {
   )
     return {
       phase: "error",
+      recovery: "browser",
       message:
-        "O protótipo não conseguiu continuar. Confira o Chrome e a tela aberta antes de tentar novamente.",
+        "O cadastro assistido não conseguiu continuar. Confira a tela aberta no Chrome e tente de novo.",
     };
   if (
-    /SUCESSO|TELA CADASTRAL DETECTADA|tela cadastral final (?:detectada|identificada|encontrada|atingida)/i.test(
+    /AUTOMA[CÇ][AÃ]O ENCERRADA|TELA CADASTRAL DETECTADA|tela cadastral final (?:detectada|identificada|encontrada|atingida)/i.test(
       text,
     )
   )
     return {
       phase: "done",
       message:
-        "Tela cadastral alcançada. A automação parou para você continuar no CAIXA Aqui.",
+        "Chegamos à tela cadastral. O Chrome está pronto para você concluir o cadastro.",
     };
   if (/Aguardando a tela cadastral final/i.test(text))
     return { phase: "final", message: "Aguardando a tela cadastral final." };
@@ -75,6 +129,7 @@ export class AutomationBridge {
   private active = false;
   private closed = Promise.resolve();
   private timeout?: NodeJS.Timeout;
+  private input?: AutomationInput;
   constructor(
     private executable: string,
     private tempRoot: string,
@@ -96,6 +151,24 @@ export class AutomationBridge {
   async start(input: AutomationInput) {
     validateAutomation(input);
     if (this.active) throw new Error("Já existe uma operação em andamento.");
+    this.input = input;
+    await this.launch();
+  }
+  // A hiccup in the browser used to cost the whole operation: the executable
+  // dies on the first error and the employee had to confirm everything again.
+  // The run belongs to the interface, not to the process, so the same confirmed
+  // data simply starts another one.
+  async retry() {
+    if (!this.input)
+      throw new Error("Inicie o cadastro assistido antes de tentar de novo.");
+    if (!["error", "cancelled"].includes(this.phase))
+      throw new Error("Aguarde o fim da operação em andamento.");
+    await this.closed;
+    if (this.active) throw new Error("Já existe uma operação em andamento.");
+    await this.launch();
+  }
+  private async launch() {
+    const input = this.input!;
     if (process.platform !== "win32")
       throw new Error("A automação requer Windows e Google Chrome instalado.");
     this.active = true;
@@ -109,11 +182,7 @@ export class AutomationBridge {
       await copyFile(this.executable, exe);
       await writeFile(
         path.join(this.runDir, "cliente_teste.json"),
-        JSON.stringify({
-          cpf: digits(input.cpf ?? ""),
-          nome_pai_validacao: (input.nome_pai_validacao ?? "").trim(),
-          numero_cnh: digits(input.numero_cnh ?? ""),
-        }),
+        JSON.stringify(enginePayload(input)),
         { mode: 0o600 },
       );
       const child = spawn(exe, [], {
@@ -124,6 +193,7 @@ export class AutomationBridge {
       });
       this.child = child;
       let buffer = "";
+      let finished = false;
       const consume = (chunk: Buffer | string) => {
         buffer = (buffer + chunk.toString()).slice(-16000);
         const lines = buffer.split(/\r?\n/);
@@ -134,10 +204,22 @@ export class AutomationBridge {
             status &&
             status.phase !== this.phase &&
             !["done", "error", "cancelled"].includes(this.phase)
-          ) {
+          )
             this.emit(status);
-            if (status.phase === "done" || status.phase === "error")
-              child.stdin.write("\r\n");
+          // "Pressione ENTER para fechar..." exists only because the reference
+          // prototype runs in a console window someone has to dismiss. There is
+          // no console here, so the run is ended instead of being fed a keystroke
+          // nobody typed. Ending it also skips the executable's own shutdown,
+          // which is what keeps the Chrome window standing for the employee to
+          // finish the registration.
+          if (
+            !finished &&
+            (CLOSING_PROMPT.test(line) ||
+              this.phase === "done" ||
+              this.phase === "error")
+          ) {
+            finished = true;
+            child.kill();
           }
         }
       };
@@ -149,8 +231,9 @@ export class AutomationBridge {
       child.on("error", () =>
         this.emit({
           phase: "error",
+          recovery: "browser",
           message:
-            "Não foi possível abrir o CCA_v1. Confira se o antivírus bloqueou o executável.",
+            "Não foi possível iniciar o cadastro assistido. Confira se o antivírus bloqueou o aplicativo.",
         }),
       );
       this.closed = new Promise((resolve) =>
@@ -159,8 +242,9 @@ export class AutomationBridge {
           if (!["done", "error", "cancelled"].includes(this.phase))
             this.emit({
               phase: "error",
+              recovery: "browser",
               message:
-                "O protótipo encerrou sem confirmar a tela final. Confira a situação no Chrome.",
+                "O cadastro assistido terminou sem confirmar a tela final. Confira a situação no Chrome.",
             });
           this.child = undefined;
           await this.cleanup();
@@ -172,8 +256,9 @@ export class AutomationBridge {
         () => {
           this.emit({
             phase: "error",
+            recovery: "browser",
             message:
-              "Tempo de espera encerrado. Confira o Chrome e tente novamente.",
+              "Tempo de espera encerrado. Confira o Chrome e tente de novo.",
           });
           child.kill();
         },
@@ -184,11 +269,14 @@ export class AutomationBridge {
       this.active = false;
       this.emit({
         phase: "error",
-        message: "Não foi possível preparar a automação.",
+        recovery: "browser",
+        message: "Não foi possível preparar o cadastro assistido.",
       });
       throw error;
     }
   }
+  // The one keystroke worth keeping: it carries a decision only the employee can
+  // make — that the CAIXA Aqui screen is really open and logged in.
   continue() {
     if (!this.child || this.phase !== "waiting")
       throw new Error("Aguarde o navegador ficar pronto.");

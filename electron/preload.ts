@@ -14,6 +14,7 @@ const api: DesktopApi = {
   },
   startAutomation: (input) => ipcRenderer.invoke("automation:start", input),
   continueAutomation: () => ipcRenderer.invoke("automation:continue"),
+  retryAutomation: () => ipcRenderer.invoke("automation:retry"),
   cancelAutomation: () => ipcRenderer.invoke("automation:cancel"),
   onAutomation: (callback) => {
     const handler = (_event: unknown, data: Parameters<typeof callback>[0]) =>

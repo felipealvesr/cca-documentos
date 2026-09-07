@@ -29,6 +29,7 @@ import {
   ZoomOut,
 } from "lucide-react";
 import type {
+  AutomationPhase,
   AutomationStatus,
   AppUpdateStatus,
   Candidate,
@@ -48,6 +49,13 @@ import {
 import { consolidate } from "./shared/consolidate";
 
 const api = window.cca;
+const AUTOMATION_STEPS: { label: string; phases: AutomationPhase[] }[] = [
+  { label: "Abrir o navegador", phases: ["opening"] },
+  { label: "Login e tela CPF do Cliente", phases: ["waiting"] },
+  { label: "Consulta do CPF", phases: ["cpf"] },
+  { label: "Identificação positiva", phases: ["identification"] },
+  { label: "Tela cadastral", phases: ["final", "done"] },
+];
 const errorMessage = (error: unknown) =>
   String(error instanceof Error ? error.message : error).replace(
     /^Error invoking remote method '[^']+': Error: /,
@@ -76,6 +84,9 @@ export default function App() {
     message: "",
   });
   const [automationOpen, setAutomationOpen] = useState(false);
+  // The run can stop at any step. Remembering the last one keeps the list
+  // showing where it stopped instead of collapsing into a single error line.
+  const [stoppedAt, setStoppedAt] = useState(0);
   const [update, setUpdate] = useState<AppUpdateStatus>({
     phase: "idle",
     message: "",
@@ -103,12 +114,27 @@ export default function App() {
   const cnhReady = valid("cnh");
   const identifierReady = cpfReady || cnhReady;
   const requiredReady = documents.length > 0 && nameReady && identifierReady;
+  const identificationReady = cpfReady && valid("fatherName") && cnhReady;
+  // Everything settled in the review travels to the filling, optional or not.
+  // Only fields still in conflict stay behind, waiting for the employee to pick.
+  const carried = fields.filter((f) => !f.conflict && f.value.trim());
   const neededCount = (nameReady ? 1 : 0) + (identifierReady ? 1 : 0);
   // Optional conflicting fields are left out of the automation until the employee
   // chooses a value. Required identity conflicts still block the start action.
   const blockingConflicts = fields.filter(
     (f) => f.conflict && ["fullName", "cpf", "cnh"].includes(f.key),
   ).length;
+  const currentStep = AUTOMATION_STEPS.findIndex((s) =>
+    s.phases.includes(automation.phase),
+  );
+  const step = currentStep < 0 ? stoppedAt : currentStep;
+  const stepState = (index: number) => {
+    if (automation.phase === "done" || index < step) return "done";
+    if (index > step) return "pending";
+    if (automation.phase === "error") return "error";
+    if (automation.phase === "cancelled") return "stopped";
+    return "current";
+  };
   const running = [
     "opening",
     "waiting",
@@ -118,6 +144,9 @@ export default function App() {
   ].includes(automation.phase);
   const locked = busy || running;
   const hasOperation = documents.length > 0 || Object.keys(edits).length > 0;
+  useEffect(() => {
+    if (currentStep >= 0) setStoppedAt(currentStep);
+  }, [currentStep]);
   useEffect(() => {
     const off = api?.onProgress(setProgress);
     const offAutomation = api?.onAutomation(setAutomation);
@@ -233,6 +262,8 @@ export default function App() {
     setRaw(false);
     setResetOpen(false);
     setAutomation({ phase: "idle", message: "" });
+    setAutomationOpen(false);
+    setStoppedAt(0);
   }
   function remove(id: string) {
     setDocuments((old) => old.filter((d) => d.id !== id));
@@ -246,6 +277,7 @@ export default function App() {
   async function start() {
     if (!confirmed || !requiredReady || blockingConflicts || locked) return;
     setAutomationOpen(true);
+    setStoppedAt(0);
     setAutomation({
       phase: "opening",
       message: "Preparando o cadastro assistido.",
@@ -266,9 +298,33 @@ export default function App() {
         nome_pai_validacao: optionalValue("fatherName"),
         numero_cnh: optionalValue("cnh"),
         confirmed,
+        // Everything the review settled goes along, optional fields included.
+        // Only what is still in conflict stays behind: there the employee has
+        // not chosen a value yet, and guessing one is worse than omitting it.
+        reviewed: carried.map((field) => ({
+          key: field.key,
+          label: field.label,
+          value: normalize(field.key, field.value),
+        })),
       });
     } catch (error) {
       setAutomation({ phase: "error", message: errorMessage(error) });
+    }
+  }
+  async function retryAutomation() {
+    setStoppedAt(0);
+    setAutomation({
+      phase: "opening",
+      message: "Reabrindo o navegador para o cadastro assistido.",
+    });
+    try {
+      await api!.retryAutomation();
+    } catch (error) {
+      setAutomation({
+        phase: "error",
+        recovery: "browser",
+        message: errorMessage(error),
+      });
     }
   }
   async function downloadUpdate() {
@@ -453,50 +509,55 @@ export default function App() {
           </button>
         </div>
       </header>
-      {update.phase !== "idle" && update.phase !== "checking" && update.phase !== "error" && (
-        <div className={`update-toast ${update.phase}`} role="status">
-          <div className="update-toast-icon">
-            {update.phase === "downloading" || update.phase === "installing" ? (
-              <RefreshCw size={18} className="spin" />
-            ) : (
-              <Download size={18} />
+      {update.phase !== "idle" &&
+        update.phase !== "checking" &&
+        update.phase !== "error" && (
+          <div className={`update-toast ${update.phase}`} role="status">
+            <div className="update-toast-icon">
+              {update.phase === "downloading" ||
+              update.phase === "installing" ? (
+                <RefreshCw size={18} className="spin" />
+              ) : (
+                <Download size={18} />
+              )}
+            </div>
+            <div className="update-toast-copy">
+              <strong>
+                {update.phase === "ready"
+                  ? "Atualização pronta"
+                  : update.phase === "installing"
+                    ? "Instalando atualização"
+                    : "Nova versão disponível"}
+              </strong>
+              <p>
+                {update.phase === "available"
+                  ? `A versão ${update.version} do CCA está disponível.`
+                  : update.message}
+              </p>
+            </div>
+            {update.phase === "available" && (
+              <button
+                className="button update-toast-button"
+                onClick={() => void downloadUpdate()}
+              >
+                Baixar
+              </button>
+            )}
+            {update.phase === "downloading" && (
+              <span className="update-toast-progress">
+                {update.progress ?? 0}%
+              </span>
+            )}
+            {update.phase === "ready" && (
+              <button
+                className="button update-toast-button ready"
+                onClick={() => void installUpdate()}
+              >
+                Instalar
+              </button>
             )}
           </div>
-          <div className="update-toast-copy">
-            <strong>
-              {update.phase === "ready"
-                ? "Atualização pronta"
-                : update.phase === "installing"
-                  ? "Instalando atualização"
-                  : "Nova versão disponível"}
-            </strong>
-            <p>
-              {update.phase === "available"
-                ? `A versão ${update.version} do CCA está disponível.`
-                : update.message}
-            </p>
-          </div>
-          {update.phase === "available" && (
-            <button
-              className="button update-toast-button"
-              onClick={() => void downloadUpdate()}
-            >
-              Baixar
-            </button>
-          )}
-          {update.phase === "downloading" && (
-            <span className="update-toast-progress">{update.progress ?? 0}%</span>
-          )}
-          {update.phase === "ready" && (
-            <button
-              className="button update-toast-button ready"
-              onClick={() => void installUpdate()}
-            >
-              Instalar
-            </button>
-          )}
-        </div>
-      )}
+        )}
       <nav className="steps" aria-label="Etapas do cadastro">
         {[
           { label: "Selecionar documento", n: 1 },
@@ -914,26 +975,62 @@ export default function App() {
                         ao mesmo cliente.
                       </span>
                     </label>
-                    <button
-                      className="button primary-button start-button"
-                      onClick={start}
-                      disabled={
-                        !confirmed ||
-                        !requiredReady ||
-                        !!blockingConflicts ||
-                        locked
-                      }
-                    >
-                      Iniciar cadastro
-                      <ArrowUpRight size={18} />
-                    </button>
+                    {requiredReady &&
+                      !blockingConflicts &&
+                      !identificationReady &&
+                      automation.phase !== "done" && (
+                        <div className="notice hint-notice">
+                          <Info size={17} />
+                          <p>
+                            A identificação positiva do CAIXA Aqui usa{" "}
+                            <b>CPF</b>, <b>nome do pai</b> e{" "}
+                            <b>número da CNH</b> juntos. Sem algum deles a
+                            consulta pode ser recusada — dá para iniciar assim
+                            mesmo e completar se isso acontecer.
+                          </p>
+                        </div>
+                      )}
+                    {automation.phase === "done" ? (
+                      // The run is over but the operation is not: the employee
+                      // is still filling the CAIXA Aqui screen. Starting another
+                      // one from here would pull the browser out from under
+                      // them, so the button becomes the way out of the
+                      // operation instead.
+                      <button
+                        className="button primary-button start-button"
+                        onClick={() => reset()}
+                      >
+                        Finalizei o cadastro
+                        <Check size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        className="button primary-button start-button"
+                        onClick={start}
+                        disabled={
+                          !confirmed ||
+                          !requiredReady ||
+                          !!blockingConflicts ||
+                          locked
+                        }
+                      >
+                        Iniciar cadastro
+                        <ArrowUpRight size={18} />
+                      </button>
+                    )}
                     <p>
                       <LockKeyhole size={12} />
-                      {!requiredReady
-                        ? "Informe o nome e um CPF ou CNH válidos para continuar."
-                        : blockingConflicts
-                          ? "Resolva as divergências dos dados principais para continuar."
-                          : "O CCA para ao chegar à tela cadastral final."}
+                      {automation.phase === "done"
+                        ? "Conclua e salve no CAIXA Aqui antes de começar a próxima operação."
+                        : !requiredReady
+                          ? "Informe o nome e um CPF ou CNH válidos para continuar."
+                          : blockingConflicts
+                            ? "Resolva as divergências dos dados principais para continuar."
+                            : `${
+                                carried.length === 1
+                                  ? "1 campo conferido segue"
+                                  : `${carried.length} campos conferidos seguem`
+                              } para o preenchimento. O CCA para na tela cadastral final.`}
                     </p>
                   </div>
                 </div>
@@ -1032,22 +1129,44 @@ export default function App() {
         <Modal
           title={
             automation.phase === "done"
-              ? "Pronto. Agora é com você."
-              : "Cadastro assistido"
+              ? "Chegamos à tela cadastral"
+              : automation.phase === "error"
+                ? "O cadastro assistido parou"
+                : automation.phase === "cancelled"
+                  ? "Operação interrompida"
+                  : "Cadastro assistido"
           }
           close={running ? undefined : () => setAutomationOpen(false)}
         >
-          <div className={`automation-symbol ${automation.phase}`}>
-            {automation.phase === "done" ? (
-              <CheckCheck size={34} />
-            ) : automation.phase === "error" ? (
-              <TriangleAlert size={34} />
-            ) : automation.phase === "waiting" ? (
-              <Fingerprint size={34} />
-            ) : (
-              <LoaderCircle size={34} className={running ? "spin" : ""} />
-            )}
-          </div>
+          {!running && (
+            <div className={`automation-symbol ${automation.phase}`}>
+              {automation.phase === "done" ? (
+                <CheckCheck size={34} />
+              ) : (
+                <TriangleAlert size={34} />
+              )}
+            </div>
+          )}
+          <ol className="automation-steps">
+            {AUTOMATION_STEPS.map((item, index) => (
+              <li key={item.label} className={stepState(index)}>
+                <span className="automation-step-mark">
+                  {stepState(index) === "done" ? (
+                    <Check size={13} />
+                  ) : stepState(index) === "error" ? (
+                    <TriangleAlert size={13} />
+                  ) : stepState(index) !== "current" ? (
+                    index + 1
+                  ) : automation.phase === "waiting" ? (
+                    <Fingerprint size={13} />
+                  ) : (
+                    <LoaderCircle size={13} className="spin" />
+                  )}
+                </span>
+                {item.label}
+              </li>
+            ))}
+          </ol>
           <p className="automation-message" role="status">
             {automation.message}
           </p>
@@ -1057,7 +1176,7 @@ export default function App() {
                 <Info size={19} />
                 <p>
                   Na janela do Chrome, faça login normalmente e abra{" "}
-                  <b>CPF do Cliente</b>. Depois, clique abaixo.
+                  <b>CPF do Cliente</b>. Depois, confirme abaixo.
                 </p>
               </div>
               <button
@@ -1068,12 +1187,13 @@ export default function App() {
                   } catch (error) {
                     setAutomation({
                       phase: "error",
+                      recovery: "browser",
                       message: errorMessage(error),
                     });
                   }
                 }}
               >
-                A tela CPF do Cliente está aberta
+                Já estou na tela CPF do Cliente
                 <ArrowRight size={17} />
               </button>
             </>
@@ -1086,18 +1206,57 @@ export default function App() {
               Interromper automação
             </button>
           )}
-          {!running && (
-            <button
-              className="button primary-button"
-              onClick={() => setAutomationOpen(false)}
-            >
-              Voltar à conferência
-              <ArrowRight size={16} />
-            </button>
+          {automation.phase === "done" && (
+            <div className="modal-actions">
+              <button
+                className="button secondary-button"
+                onClick={() => setAutomationOpen(false)}
+              >
+                Ainda estou no cadastro
+              </button>
+              <button
+                className="button primary-button"
+                onClick={() => reset()}
+              >
+                Finalizei o cadastro
+                <Check size={16} />
+              </button>
+            </div>
+          )}
+          {(automation.phase === "error" ||
+            automation.phase === "cancelled") && (
+            <div className="modal-actions">
+              {automation.recovery !== "data" && (
+                <button
+                  className="button secondary-button"
+                  onClick={() => setAutomationOpen(false)}
+                >
+                  Voltar à conferência
+                </button>
+              )}
+              {automation.recovery === "data" ? (
+                <button
+                  className="button primary-button"
+                  onClick={() => setAutomationOpen(false)}
+                >
+                  Voltar e completar
+                  <ArrowRight size={16} />
+                </button>
+              ) : (
+                <button
+                  className="button primary-button"
+                  onClick={retryAutomation}
+                >
+                  Tentar de novo
+                  <RotateCcw size={16} />
+                </button>
+              )}
+            </div>
           )}
           <small className="automation-footnote">
-            O preenchimento já realizado pode permanecer no Chrome. A automação
-            não salva nem conclui o cadastro final.
+            {automation.phase === "done"
+              ? "O CCA não salva nem conclui o cadastro. Termine no CAIXA Aqui e volte aqui para começar a próxima operação."
+              : "O preenchimento já feito permanece no Chrome. O CCA não salva nem conclui o cadastro final."}
           </small>
         </Modal>
       )}

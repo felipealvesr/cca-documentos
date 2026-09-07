@@ -157,6 +157,7 @@ app.whenReady().then(async () => {
   handle("documents:cancel", () => controller?.abort());
   handle("automation:start", (input) => automation.start(input));
   handle("automation:continue", () => automation.continue());
+  handle("automation:retry", () => automation.retry());
   handle("automation:cancel", () => automation.cancel());
   handle("update:check", () => updater.check());
   handle("update:download", () => updater.download());

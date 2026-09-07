@@ -1144,6 +1144,71 @@ h2 {
   margin-bottom: 5px;
   font-size: 13px;
 }
+.hint-notice {
+  margin-top: 14px;
+  background: #fff8ef;
+  border-color: #f2e1cb;
+  color: #97703f;
+  font-size: 11px;
+}
+.automation-steps {
+  list-style: none;
+  margin: 2px 0 20px;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.automation-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: #9dadba;
+}
+.automation-step-mark {
+  height: 21px;
+  width: 21px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #eef3f7;
+  color: #9dadba;
+  font-size: 10px;
+  font-weight: 600;
+}
+.automation-steps li.done {
+  color: #567c96;
+}
+.automation-steps li.done .automation-step-mark {
+  background: #e6f4ec;
+  color: #328664;
+}
+.automation-steps li.current {
+  background: #f2f8fd;
+  color: #1d5a7d;
+  font-weight: 600;
+}
+.automation-steps li.current .automation-step-mark {
+  background: #d9ecf8;
+  color: #1c7aa8;
+}
+.automation-steps li.error {
+  background: #fff5f1;
+  color: #a96543;
+  font-weight: 600;
+}
+.automation-steps li.error .automation-step-mark {
+  background: #fbe3d7;
+  color: #bb5b2c;
+}
+.automation-steps li.stopped {
+  background: #f3f5f7;
+  color: #8b98a4;
+  font-weight: 600;
+}
 .automation-symbol {
   height: 75px;
   width: 75px;
